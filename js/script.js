@@ -28,11 +28,11 @@ function switchChannel(channelObject) {
     document.getElementById('channel-name').innerHTML = channelObject.name;
 
     //#7 #clob #dgst change the channel location using object property
-    document.getElementById('channel-location').innerHTML = 'by <a href="http://w3w.co/'
-        + channelObject.createdBy
-        + '" target="_blank"><strong>'
-        + channelObject.createdBy
-        + '</strong></a>';
+    document.getElementById('channel-location').innerHTML = 'by <a href="http://w3w.co/' +
+        channelObject.createdBy +
+        '" target="_blank"><strong>' +
+        channelObject.createdBy +
+        '</strong></a>';
 
     /* #7 #clob #trn remove either class */
     $('#chat h1 i').removeClass('fa-star fa-star-o');
@@ -109,15 +109,23 @@ function sendMessage() {
     var message = new Message($('#message').val());
     console.log("New message:", message);
 
-    // #8 nicer #message #append with jQuery:
-    $('#messages').append(createMessageElement(message));
+    if ($('#message').val().length == 0) { //no empty messages!
+        return;
+    } else {
+        // #8 nicer #message #append with jQuery:
+        $('#messages').append(createMessageElement(message));
+        //push new message to messages array in channel
+        currentChannel.messages.push(createMessageElement(message));
+        currentChannel.messageCount++; //increase messages count by one
 
-    // #8 #messages will #scroll to a certain point if we apply a certain height, in this case the overall scrollHeight of the messages-div that increases with every message;
-    // it would also #scroll to the bottom when using a very high number (e.g. 1000000000);
-    $('#messages').scrollTop($('#messages').prop('scrollHeight'));
+        // #8 #messages will #scroll to a certain point if we apply a certain height, in this case the overall scrollHeight of the messages-div that increases with every message;
+        // it would also #scroll to the bottom when using a very high number (e.g. 1000000000);
+        $('#messages').scrollTop($('#messages').prop('scrollHeight'));
 
-    // #8 #clear the #message input
-    $('#message').val('');
+        // #8 #clear the #message input
+        $('#message').val('');
+    }
+
 }
 
 /**
@@ -130,31 +138,37 @@ function createMessageElement(messageObject) {
     var expiresIn = Math.round((messageObject.expiresOn - Date.now()) / 1000 / 60);
 
     // #8 #message #element
-    return '<div class="message'+
+    return '<div class="message' +
         //this dynamically adds the class 'own' (#own) to the #message, based on the
         //ternary operator. We need () in order to not disrupt the return.
         (messageObject.own ? ' own' : '') +
         '">' +
-        '<h3><a href="http://w3w.co/' + messageObject.createdBy + '" target="_blank">'+
+        '<h3><a href="http://w3w.co/' + messageObject.createdBy + '" target="_blank">' +
         '<strong>' + messageObject.createdBy + '</strong></a>' +
         messageObject.createdOn.toLocaleString() +
-        '<em>' + expiresIn+ ' min. left</em></h3>' +
+        '<em>' + expiresIn + ' min. left</em></h3>' +
         '<p>' + messageObject.text + '</p>' +
         '<button>+5 min.</button>' +
         '</div>';
 }
 
 
-function listChannels() {
+function listChannels(sortBy) {
     // #8 #channel #onload
     //$('#channels ul').append("<li>New Channel</li>")
 
+    $('#channels ul').empty();
+
+    var sortBy = sortBy;
+    sortChannels(sortBy);
+
     // #8 #channels make five #new channels
-    $('#channels ul').append(createChannelElement(yummy));
-    $('#channels ul').append(createChannelElement(sevencontinents));
-    $('#channels ul').append(createChannelElement(killerapp));
-    $('#channels ul').append(createChannelElement(firstpersononmars));
-    $('#channels ul').append(createChannelElement(octoberfest));
+    for (i = 0; i < channels.length; i++) {
+        var channelName = channels[i];
+        // Access the current element and store it into a variable  
+        $('#channels ul').append(createChannelElement(channelName));
+    }
+
 }
 
 /**
@@ -192,4 +206,95 @@ function createChannelElement(channelObject) {
 
     // return the complete channel
     return channel;
+}
+
+function sortChannels(sortBY) {
+
+    if (sortBY == 'latest') {
+        for (i = 0; i < channels.length - 1; i++) {
+            channels.sort(compareDate)
+        }
+    }
+
+    if (sortBY == 'trending') {
+        for (i = 0; i < channels.length - 1; i++) {
+            channels.sort(compareMessageCount)
+        }
+    }
+
+    if (sortBY == 'favourite') {
+        for (i = 0; i < channels.length - 1; i++) {
+            channels.sort(compareStarred)
+        }
+    }
+
+}
+
+function compareDate(channel1, channel2) {
+    if (channel1.createdOn.getTime() < channel2.createdOn.getTime()) {
+        return 1; //channel one is more recent and should be sorted first
+    } else {
+        return -1; //channel 2 is more recent (or equal) and should be sorted first
+    }
+}
+
+function compareMessageCount(channel1, channel2) {
+    if (channel1.messageCount < channel2.messageCount) {
+        return 1; //channel one is more trending and should be sorted first
+    } else {
+        return -1; //channel 2 is more trending (or equal) and should be sorted first
+    }
+}
+
+function compareStarred(channel1, channel2) {
+    if (channel1.starred == true && channel2.starred == false) {
+        return -1; //channel one is starred and channel two not. 1 should be sorted first
+    } else {
+        return 1; //channel one or both are not starred
+    }
+}
+
+function createMode() {
+    $('#messages').empty();
+    $('#right-app-bar').html("<input type='text' placeholder='Type #ChannelName...' id='newChannel'> <span id='abort' onclick='abort()'>X Abort</span>");
+
+    $('#send-button').html("<small>CREATE</small>").attr("onclick", "create()")
+
+}
+
+function abort() {
+    $('#right-app-bar').html(" <span id='channel-name'>#SevenContinents</span> <small id='channel-location'>by <strong>cheeses.yard.applies</strong></small> <i class='fa fa-star' onclick='star()'></i>");
+
+    $('#send-button').html("<i class='fa fa-arrow-right'></i>").attr("onclick", "sendMessage()");
+
+    $('#messages').empty(); //clear messages
+}
+
+function create() {
+    var newChannel = $('#newChannel').val();
+    if ($('#message').val().length == 0) {
+        abort();
+        return;
+    }
+
+    if (newChannel.charAt(0) != "#") {
+        abort();
+        return;
+    } else {
+        var newChannelElement = {
+            name: newChannel,
+            createdOn: new Date(2017, 04, 14),
+            createdBy: "politics.mashing.winners",
+            starred: true,
+            expiresIn: 70,
+            messageCount: 0,
+            messages: []
+        };
+        currentChannel = newChannelElement;
+        channels.push(newChannelElement);
+        sendMessage();
+        $('#right-app-bar').html(" <span id='channel-name'>" + newChannelElement.name + "</span> <small id='channel-location'>by <strong>" + newChannelElement.createdBy + "</strong></small> <i class='fa fa-star' onclick='star()'></i>") //write new channel to app bar
+        listChannels('latest');
+        $('#send-button').html("<i class='fa fa-arrow-right'></i>").attr("onclick", "sendMessage()");
+    }
 }
