@@ -359,9 +359,9 @@ li.selected {
     width: 55px;
     height: 55px;
     border-radius: 30px;
-    font-size: 23px;
+    font-size: 24px;
     color: black;
-    line-height: 56px;
+    line-height: 55px;
     text-align: center;
     background: #CDDC39;
     position:absolute;
